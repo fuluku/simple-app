@@ -114,16 +114,14 @@
     const preview = document.getElementById("preview");
     const uploadText = document.getElementById("uploadText");
 
-    let imageBase64 = "";
-
+    // preview รูป (ยังใช้ FileReader ได้ ปกติ)
     imageInput.addEventListener("change", () => {
       const file = imageInput.files[0];
       if (!file) return;
 
       const reader = new FileReader();
       reader.onload = () => {
-        imageBase64 = reader.result;
-        preview.src = imageBase64;
+        preview.src = reader.result;
         preview.style.display = "block";
         uploadText.style.display = "none";
       };
@@ -132,22 +130,25 @@
 
     async function submitData() {
       const link = document.getElementById("productLink").value;
+      const file = imageInput.files[0];
 
-      if (!link || !imageBase64) {
+      if (!link || !file) {
         alert("กรุณาใส่ลิงก์และอัปโหลดรูป");
         return;
       }
+
+      // 🔥 จุดสำคัญ
+      const formData = new FormData();
+      formData.append("link", link);
+      formData.append("productId", Date.now()); // หรือ id สินค้ามึง
+      formData.append("data", file); // ← ชื่อนี้ n8n จะเห็นเป็น binary
 
       try {
         await fetch(
           "https://endoparasitic-convalescently-cristen.ngrok-free.dev/webhook/add-product",
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              link: link,
-              image: imageBase64
-            })
+            body: formData
           }
         );
 
