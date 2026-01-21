@@ -1,150 +1,57 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>เพิ่มสินค้า</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f4a6a6;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    .phone {
-      width: 360px;
-      height: 720px;
-      background: #fff;
-      border-radius: 32px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.2);
-      padding: 40px 20px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    h3 {
-      margin-top: 40px;
-      margin-bottom: 20px;
-      font-weight: normal;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 14px;
-      border-radius: 999px;
-      border: none;
-      background: #eee9f1;
-      font-size: 15px;
-      outline: none;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .upload-box {
-      width: 160px;
-      height: 160px;
-      border-radius: 20px;
-      background: #f1f1f1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-
-    .upload-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    input[type="file"] {
-      display: none;
-    }
-
-    button {
-      padding: 10px 24px;
-      border-radius: 999px;
-      border: none;
-      background: #000;
-      color: #fff;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .footer {
-      margin-top: auto;
-      font-size: 22px;
-      padding-bottom: 20px;
-      cursor: pointer;
-    }
-  </style>
 </head>
-
 <body>
 
-  <div class="phone">
-    <h3>เพิ่มลิงค์สินค้าของคุณ</h3>
+  <h2>เพิ่มสินค้า</h2>
 
-    <input
-      type="text"
-      id="productLink"
-      placeholder="วางลิงก์ TikTok / Shopee"
-    >
+  <input
+    type="text"
+    id="link"
+    placeholder="วางลิงก์สินค้า"
+    style="width: 100%; margin-bottom: 10px;"
+  />
 
-    <!-- Upload Image -->
-    <label class="upload-box">
-      <span id="uploadText">📷 เพิ่มรูปสินค้า</span>
-      <img id="preview" style="display:none;">
-      <input type="file" accept="image/*" onchange="previewImage(event)">
-    </label>
+  <input
+    type="file"
+    id="image"
+    accept="image/*"
+  />
 
-    <button onclick="addProduct()">เพิ่ม</button>
+  <br><br>
 
-    <div class="footer" onclick="goHome()">🏠</div>
-  </div>
+  <button onclick="sendData()">เพิ่ม</button>
 
   <script>
-    function previewImage(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    function sendData() {
+      const link = document.getElementById('link').value;
+      const file = document.getElementById('image').files[0];
 
-      const img = document.getElementById('preview');
-      const text = document.getElementById('uploadText');
-
-      img.src = URL.createObjectURL(file);
-      img.style.display = 'block';
-      text.style.display = 'none';
-    }
-
-    function addProduct() {
-      const link = document.getElementById('productLink').value;
-      const img = document.getElementById('preview').src;
-
-      if (!link) {
-        alert('กรุณาใส่ลิงก์สินค้า');
+      if (!link || !file) {
+        alert('กรอกลิงก์และเลือกรูป');
         return;
       }
 
-      alert(
-        'เพิ่มสินค้าเรียบร้อย\n\n' +
-        'ลิงก์: ' + link +
-        (img ? '\nมีรูปสินค้าแล้ว' : '\nยังไม่ได้เลือกรูป')
-      );
+      const reader = new FileReader();
+      reader.onload = function () {
+        fetch('http://localhost:5678/webhook/add-product', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            link: link,
+            image_base64: reader.result
+          })
+        })
+        .then(() => alert('ส่งแล้ว'))
+        .catch(err => alert('ส่งไม่สำเร็จ'));
+      };
 
-      // 🔜 ต่อ n8n webhook / upload server ภายหลังได้
-    }
-
-    function goHome() {
-      window.location.href = 'index.html';
+      reader.readAsDataURL(file);
     }
   </script>
 
