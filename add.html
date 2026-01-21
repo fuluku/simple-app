@@ -3,57 +3,139 @@
 <head>
   <meta charset="UTF-8" />
   <title>เพิ่มสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      padding: 20px;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #007bff;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #aaa;
+    }
+
+    .status {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 14px;
+    }
+  </style>
 </head>
+
 <body>
+  <div class="card">
+    <h2>เพิ่มสินค้า</h2>
 
-  <h2>เพิ่มสินค้า</h2>
+    <label>ลิงก์สินค้า</label>
+    <input id="productLink" type="text" placeholder="https://..." />
 
-  <input
-    type="text"
-    id="link"
-    placeholder="วางลิงก์สินค้า"
-    style="width: 100%; margin-bottom: 10px;"
-  />
+    <label>รูปสินค้า</label>
+    <input id="imageInput" type="file" accept="image/*" />
 
-  <input
-    type="file"
-    id="image"
-    accept="image/*"
-  />
+    <button id="submitBtn">เพิ่มสินค้า</button>
 
-  <br><br>
-
-  <button onclick="sendData()">เพิ่ม</button>
+    <div class="status" id="status"></div>
+  </div>
 
   <script>
-    function sendData() {
-      const link = document.getElementById('link').value;
-      const file = document.getElementById('image').files[0];
+    const webhookUrl =
+      "https://endoparasitic-convalescently-cristen.ngrok-free.dev/webhook-test/add-product";
+
+    const btn = document.getElementById("submitBtn");
+    const statusEl = document.getElementById("status");
+
+    btn.onclick = async () => {
+      const link = document.getElementById("productLink").value;
+      const file = document.getElementById("imageInput").files[0];
 
       if (!link || !file) {
-        alert('กรอกลิงก์และเลือกรูป');
+        alert("กรุณาใส่ลิงก์และเลือกรูปสินค้า");
         return;
       }
 
+      btn.disabled = true;
+      statusEl.textContent = "⏳ กำลังส่งข้อมูล...";
+
       const reader = new FileReader();
-      reader.onload = function () {
-        fetch('https://endoparasitic-convalescently-cristen.ngrok-free.dev/webhook-test/add-product', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            link: link,
-            image_base64: reader.result
-          })
-        })
-        .then(() => alert('ส่งแล้ว'))
-        .catch(err => alert('ส่งไม่สำเร็จ'));
+
+      reader.onload = async () => {
+        const base64Image = reader.result;
+
+        const payload = {
+          product_link: link,
+          image_base64: base64Image,
+          created_at: new Date().toISOString()
+        };
+
+        try {
+          const res = await fetch(webhookUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            statusEl.textContent = "✅ ส่งข้อมูลสำเร็จ";
+          } else {
+            statusEl.textContent = "❌ ส่งไม่สำเร็จ (Webhook error)";
+          }
+        } catch (err) {
+          statusEl.textContent = "❌ เชื่อมต่อไม่ได้";
+        }
+
+        btn.disabled = false;
       };
 
       reader.readAsDataURL(file);
-    }
+    };
   </script>
-
 </body>
 </html>
