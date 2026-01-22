@@ -1,3 +1,98 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add Product</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #F4AAAE;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: system-ui, sans-serif;
+    }
+
+    .phone {
+      width: 360px;
+      height: 640px;
+      background: #fff;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    .input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 24px;
+      border: none;
+      background: #EEE9F0;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .upload-box {
+      width: 100%;
+      height: 160px;
+      border-radius: 16px;
+      background: #F3F3F3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .upload-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .upload-text {
+      color: #888;
+      font-size: 14px;
+    }
+
+    .btn {
+      background: #000;
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="phone">
+
+    <input id="productLink" class="input" placeholder="เพิ่มลิงก์ของคุณ" />
+
+    <label class="upload-box">
+      <span class="upload-text" id="uploadText">อัปโหลดรูปสินค้า</span>
+      <img id="preview" />
+      <input type="file" id="imageInput" accept="image/*" hidden />
+    </label>
+
+    <button class="btn" onclick="submitData()">เพิ่ม</button>
+
+  </div>
+
 <script>
   const imageInput = document.getElementById("imageInput");
   const preview = document.getElementById("preview");
@@ -25,26 +120,28 @@
       return;
     }
 
-    // 1️⃣ แปลงรูปเป็น base64
-    const base64 = await toBase64(file);
-
-    // 2️⃣ ส่งรูปไป Google Apps Script
-    const gasRes = await fetch("https://script.google.com/macros/s/AKfycby6AQc80SJPbctoqQeLxf_1npozzQ5YhRDx4x6j1rGNzwC9WVbPEiWb3gtTsSWtxWk7/exec", {
-      method: "POST",
-      body: new URLSearchParams({
-        file: base64.split(",")[1],
-        name: file.name,
-        type: file.type
-      })
+    const base64 = await new Promise((resolve) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.readAsDataURL(file);
     });
 
-    const gasData = await gasRes.json();
-    if (!gasData.success) {
-      alert("อัปโหลดรูปไม่สำเร็จ");
-      return;
-    }
+    // 1) อัปขึ้น Google Drive
+    const gasRes = await fetch(
+      "https://script.google.com/macros/s/AKfycby6AQc80SJPbctoqQeLxf_1npozzQ5YhRDx4x6j1rGNzwC9WVbPEiWb3gtTsSWtxWk7/exec",
+      {
+        method: "POST",
+        body: new URLSearchParams({
+          file: base64.split(",")[1],
+          name: file.name,
+          type: file.type
+        })
+      }
+    );
 
-    // 3️⃣ ส่งข้อมูลต่อไป n8n (ไม่มีไฟล์แล้ว)
+    const gasData = await gasRes.json();
+
+    // 2) ส่ง link รูป + link สินค้าเข้า n8n
     await fetch(
       "https://endoparasitic-convalescently-cristen.ngrok-free.dev/webhook/add-product",
       {
@@ -59,13 +156,6 @@
 
     alert("ส่งข้อมูลเรียบร้อย");
   }
-
-  function toBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
 </script>
+</body>
+</html>
