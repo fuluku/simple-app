@@ -115,7 +115,7 @@ async function upload(){
     r.readAsDataURL(file);
   });
 
-  await fetch("PUT_GAS_WEBAPP_URL_HERE",{
+  await fetch("https://script.google.com/macros/s/AKfycbwdAzKepU5t1pSsmkKUbF2Lf-T40Nj5PtbtGwxjPEtK9Re-ir-gZ3CT9DytB2-swB0X/exec",{
     method:"POST",
     body: JSON.stringify({
       image: base64,
