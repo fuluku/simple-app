@@ -115,7 +115,7 @@ async function upload(){
     r.readAsDataURL(file);
   });
 
-  await fetch("https://script.google.com/macros/s/AKfycbw0ft2312LIx8J2v4qr-N_H_VlHY0c0yQt-Mg9K_PkJ9RkEnUrUwJr5qBzs_l_pGYK1/exec",{
+  await fetch("https://script.google.com/macros/library/d/16ypspCQu-hTUW8W_6MahSd8qsQ5lTgIkLaJ2v6scN4eXkXvSikGVmef9/5",{
     method:"POST",
     body: JSON.stringify({
       image: base64,
