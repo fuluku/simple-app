@@ -29,7 +29,7 @@
     const base64 = await toBase64(file);
 
     // 2️⃣ ส่งรูปไป Google Apps Script
-    const gasRes = await fetch("🔥PUT_GAS_WEBAPP_URL_HERE🔥", {
+    const gasRes = await fetch("https://script.google.com/macros/s/AKfycby6AQc80SJPbctoqQeLxf_1npozzQ5YhRDx4x6j1rGNzwC9WVbPEiWb3gtTsSWtxWk7/exec", {
       method: "POST",
       body: new URLSearchParams({
         file: base64.split(",")[1],
