@@ -1,162 +1,71 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Add Product</title>
+<script>
+  const imageInput = document.getElementById("imageInput");
+  const preview = document.getElementById("preview");
+  const uploadText = document.getElementById("uploadText");
 
-  <style>
-    body {
-      margin: 0;
-      background: #F4AAAE;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      font-family: system-ui, sans-serif;
+  imageInput.addEventListener("change", () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      preview.src = reader.result;
+      preview.style.display = "block";
+      uploadText.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  async function submitData() {
+    const link = document.getElementById("productLink").value;
+    const file = imageInput.files[0];
+
+    if (!link || !file) {
+      alert("กรุณาใส่ลิงก์และอัปโหลดรูป");
+      return;
     }
 
-    .phone {
-      width: 360px;
-      height: 640px;
-      background: #fff;
-      border-radius: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 24px 16px;
-      box-sizing: border-box;
-      position: relative;
-    }
+    // 1️⃣ แปลงรูปเป็น base64
+    const base64 = await toBase64(file);
 
-    .input {
-      width: 100%;
-      padding: 14px;
-      border-radius: 24px;
-      border: none;
-      background: #EEE9F0;
-      font-size: 14px;
-      outline: none;
-      margin-bottom: 16px;
-      text-align: center;
-    }
-
-    .upload-box {
-      width: 100%;
-      height: 160px;
-      border-radius: 16px;
-      background: #F3F3F3;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-      cursor: pointer;
-      overflow: hidden;
-    }
-
-    .upload-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
-    }
-
-    .upload-text {
-      color: #888;
-      font-size: 14px;
-    }
-
-    .btn {
-      background: #000;
-      color: #fff;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 20px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .home {
-      position: absolute;
-      bottom: 16px;
-      font-size: 22px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="phone">
-
-    <!-- input link -->
-    <input
-      id="productLink"
-      class="input"
-      placeholder="เพิ่มลิงก์ของคุณ"
-    />
-
-    <!-- upload image -->
-    <label class="upload-box">
-      <span class="upload-text" id="uploadText">อัปโหลดรูปสินค้า</span>
-      <img id="preview" />
-      <input type="file" id="imageInput" accept="image/*" hidden />
-    </label>
-
-    <!-- submit -->
-    <button class="btn" onclick="submitData()">เพิ่ม</button>
-
-    <!-- home -->
-    <div class="home" onclick="location.href='index.html'">🏠</div>
-  </div>
-
-  <script>
-    const imageInput = document.getElementById("imageInput");
-    const preview = document.getElementById("preview");
-    const uploadText = document.getElementById("uploadText");
-
-    // preview รูป (ยังใช้ FileReader ได้ ปกติ)
-    imageInput.addEventListener("change", () => {
-      const file = imageInput.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        preview.src = reader.result;
-        preview.style.display = "block";
-        uploadText.style.display = "none";
-      };
-      reader.readAsDataURL(file);
+    // 2️⃣ ส่งรูปไป Google Apps Script
+    const gasRes = await fetch("🔥PUT_GAS_WEBAPP_URL_HERE🔥", {
+      method: "POST",
+      body: new URLSearchParams({
+        file: base64.split(",")[1],
+        name: file.name,
+        type: file.type
+      })
     });
 
-    async function submitData() {
-      const link = document.getElementById("productLink").value;
-      const file = imageInput.files[0];
-
-      if (!link || !file) {
-        alert("กรุณาใส่ลิงก์และอัปโหลดรูป");
-        return;
-      }
-
-      // 🔥 จุดสำคัญ
-      const formData = new FormData();
-      formData.append("link", link);
-      formData.append("productId", Date.now()); // หรือ id สินค้ามึง
-      formData.append("data", file); // ← ชื่อนี้ n8n จะเห็นเป็น binary
-
-      try {
-        await fetch(
-          "https://endoparasitic-convalescently-cristen.ngrok-free.dev/webhook/add-product",
-          {
-            method: "POST",
-            body: formData
-          }
-        );
-
-        alert("ส่งข้อมูลสำเร็จ");
-      } catch (e) {
-        alert("ส่งไม่สำเร็จ");
-      }
+    const gasData = await gasRes.json();
+    if (!gasData.success) {
+      alert("อัปโหลดรูปไม่สำเร็จ");
+      return;
     }
-  </script>
-</body>
-</html>
+
+    // 3️⃣ ส่งข้อมูลต่อไป n8n (ไม่มีไฟล์แล้ว)
+    await fetch(
+      "https://endoparasitic-convalescently-cristen.ngrok-free.dev/webhook/add-product",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          link,
+          imageUrl: gasData.fileUrl
+        })
+      }
+    );
+
+    alert("ส่งข้อมูลเรียบร้อย");
+  }
+
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
