@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8" />
-<title>AI Video Storyboard (3 Scenes)</title>
+<title>AI Video Storyboard (3 Contents x 4 Scenes)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
 <style>
@@ -10,7 +10,7 @@ body {
   font-family: system-ui, sans-serif;
   background: #f5f5f5;
   padding: 16px;
-  max-width: 720px;
+  max-width: 760px;
   margin: auto;
 }
 h1 { font-size: 22px; }
@@ -27,33 +27,42 @@ button {
   background: #000;
   color: #fff;
 }
-button:disabled {
-  background: #999;
-}
-.scene {
+button:disabled { background: #999; }
+
+.block {
   background: #fff;
   padding: 14px;
   margin-top: 20px;
   border-radius: 10px;
 }
+
+.scene {
+  border-top: 1px solid #eee;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
 textarea {
-  height: 120px;
+  height: 100px;
   font-family: monospace;
 }
+
 .copy {
   background: #eee;
   color: #000;
   margin-top: 6px;
 }
-hr {
-  margin: 12px 0;
+img {
+  width: 100%;
+  border-radius: 8px;
+  margin-top: 8px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>AI Video Storyboard (3 Scenes)</h1>
+<h1>🎬 AI Video Storyboard (3 Contents)</h1>
 
 <label>รูปสินค้า</label>
 <input type="file" id="productImages" multiple accept="image/*"/>
@@ -61,121 +70,94 @@ hr {
 <label>รูปนายแบบ / นางแบบ</label>
 <input type="file" id="modelImage" accept="image/*"/>
 
-<label>แนว Hook</label>
-<select id="hookStyle">
-  <option value="friend_talk">คุยกับเพื่อน</option>
-  <option value="real_review">รีวิวจริงไม่อวย</option>
-  <option value="complain_first">บ่นก่อนขาย</option>
-  <option value="demo">ลองใช้ให้ดู</option>
+<label>เลือก Hook (เพื่อนขายเพื่อน เลือก 3 แบบ)</label>
+
+<select class="hookSelect">
+  <option value="friend_dm">เพื่อนทักมาอวยของ</option>
+  <option value="gossip">เล่าเหมือนเม้าท์ในวงเหล้า</option>
+  <option value="annoy_good">ใช้เองแล้วรำคาญ เลยต้องบอกต่อ</option>
+  <option value="not_sell">ไม่ได้จะขาย แต่แม่งดีจริง</option>
+  <option value="asked_often">เพื่อนถามบ่อย เลยอัดคลิปทีเดียว</option>
+  <option value="influenced">ซื้อเพราะโดนป้ายยาอีกที</option>
+  <option value="late_buy">บ่นว่าทำไมไม่ซื้อเร็วกว่านี้</option>
+  <option value="no_script">รีวิวแบบคนไม่มีสคริปต์</option>
 </select>
 
-<button id="generateBtn" onclick="generate()">Generate Storyboard</button>
-<button id="regenBtn" onclick="regenerate()" disabled>
-  Generate ใหม่ (ใช้รูปเดิม)
-</button>
+<select class="hookSelect">
+  <option value="gossip">เล่าเหมือนเม้าท์ในวงเหล้า</option>
+  <option value="friend_dm">เพื่อนทักมาอวยของ</option>
+  <option value="annoy_good">ใช้เองแล้วรำคาญ เลยต้องบอกต่อ</option>
+  <option value="not_sell">ไม่ได้จะขาย แต่แม่งดีจริง</option>
+  <option value="asked_often">เพื่อนถามบ่อย เลยอัดคลิปทีเดียว</option>
+  <option value="influenced">ซื้อเพราะโดนป้ายยาอีกที</option>
+  <option value="late_buy">บ่นว่าทำไมไม่ซื้อเร็วกว่านี้</option>
+  <option value="no_script">รีวิวแบบคนไม่มีสคริปต์</option>
+</select>
+
+<select class="hookSelect">
+  <option value="annoy_good">ใช้เองแล้วรำคาญ เลยต้องบอกต่อ</option>
+  <option value="friend_dm">เพื่อนทักมาอวยของ</option>
+  <option value="gossip">เล่าเหมือนเม้าท์ในวงเหล้า</option>
+  <option value="not_sell">ไม่ได้จะขาย แต่แม่งดีจริง</option>
+  <option value="asked_often">เพื่อนถามบ่อย เลยอัดคลิปทีเดียว</option>
+  <option value="influenced">ซื้อเพราะโดนป้ายยาอีกที</option>
+  <option value="late_buy">บ่นว่าทำไมไม่ซื้อเร็วกว่านี้</option>
+  <option value="no_script">รีวิวแบบคนไม่มีสคริปต์</option>
+</select>
+
+<button onclick="generate()">Generate Storyboard</button>
 
 <div id="result"></div>
 
 <script>
-const N8N_WEBHOOK_URL = "https://YOUR_N8N_WEBHOOK_URL";
-let lastPayload = null;
+function generate() {
+  const hooks = [...document.querySelectorAll(".hookSelect")].map(h => h.value);
+  const result = document.getElementById("result");
+  result.innerHTML = "";
 
-function fileToBase64(file) {
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(",")[1]);
-    reader.readAsDataURL(file);
-  });
-}
-
-async function generate() {
-  const btn = document.getElementById("generateBtn");
-  btn.disabled = true;
-  btn.innerText = "⏳ กำลังคิด storyboard...";
-
-  const productFiles = document.getElementById("productImages").files;
-  const modelFile = document.getElementById("modelImage").files[0];
-  const hook = document.getElementById("hookStyle").value;
-
-  if (!productFiles.length || !modelFile) {
-    alert("กรุณาอัปโหลดรูปให้ครบ");
-    btn.disabled = false;
-    btn.innerText = "Generate Storyboard";
-    return;
-  }
-
-  const productImages = [];
-  for (let f of productFiles) {
-    productImages.push(await fileToBase64(f));
-  }
-
-  lastPayload = {
-    hook_style: hook,
-    product_images: productImages,
-    model_image: await fileToBase64(modelFile),
-    platform: "tiktok",
-    video_length: 20
+  // 🔥 MOCK DATA (แทน n8n ชั่วคราว)
+  const data = {
+    contents: hooks.map((hook, i) => ({
+      content_no: i + 1,
+      hook: hook,
+      scenes: Array.from({ length: 4 }).map((_, s) => ({
+        scene: s + 1,
+        storyboard_image: "https://via.placeholder.com/600x400?text=Scene+"+(s+1),
+        video_prompt: `Vertical video, friend selling friend vibe, hook: ${hook}, scene ${s+1}`,
+        voice_script: `เออ มึง… อันนี้กูใช้เองนะ ไม่ได้จะขาย แต่แม่งดีจริง (ฉาก ${s+1})`
+      }))
+    }))
   };
 
-  await sendPayload(lastPayload);
-
-  btn.disabled = false;
-  btn.innerText = "Generate Storyboard";
-  document.getElementById("regenBtn").disabled = false;
+  renderResult(data);
 }
 
-async function regenerate() {
-  if (!lastPayload) return;
-
-  const btn = document.getElementById("regenBtn");
-  btn.disabled = true;
-  btn.innerText = "⏳ กำลังคิดใหม่...";
-
-  lastPayload.hook_style =
-    document.getElementById("hookStyle").value;
-
-  await sendPayload(lastPayload);
-
-  btn.disabled = false;
-  btn.innerText = "Generate ใหม่ (ใช้รูปเดิม)";
-}
-
-async function sendPayload(payload) {
-  document.getElementById("result").innerHTML = "⏳ กำลังประมวลผล...";
-
-  const res = await fetch(N8N_WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-  renderResult(data.storyboard);
-}
-
-function renderResult(storyboard) {
+function renderResult(data) {
   const container = document.getElementById("result");
-  container.innerHTML = "";
 
-  storyboard.forEach(scene => {
-    const div = document.createElement("div");
-    div.className = "scene";
+  data.contents.forEach(content => {
+    const block = document.createElement("div");
+    block.className = "block";
+    block.innerHTML = `<h2>📦 Content ${content.content_no} – ${content.hook}</h2>`;
+    container.appendChild(block);
 
-    div.innerHTML = `
-      <h2>🎬 Scene ${scene.scene}</h2>
-      <hr>
-      <p><b>เป้าหมาย:</b> ${scene.purpose}</p>
-      <p>${scene.description}</p>
+    content.scenes.forEach(scene => {
+      const div = document.createElement("div");
+      div.className = "scene";
+      div.innerHTML = `
+        <h3>🎬 Scene ${scene.scene}</h3>
+        <img src="${scene.storyboard_image}" />
 
-      <label>🎥 Video Prompt</label>
-      <textarea>${scene.video_prompt}</textarea>
-      <button class="copy" onclick="copyText(this)">Copy Prompt</button>
+        <label>🎥 Video Prompt</label>
+        <textarea>${scene.video_prompt}</textarea>
+        <button class="copy" onclick="copyText(this)">Copy Prompt</button>
 
-      <label>🗣️ Voice Script</label>
-      <textarea>${scene.voice_script}</textarea>
-      <button class="copy" onclick="copyText(this)">Copy Script</button>
-    `;
-    container.appendChild(div);
+        <label>🗣️ Voice Script</label>
+        <textarea>${scene.voice_script}</textarea>
+        <button class="copy" onclick="copyText(this)">Copy Script</button>
+      `;
+      block.appendChild(div);
+    });
   });
 }
 
