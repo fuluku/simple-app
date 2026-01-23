@@ -1,76 +1,87 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI Video Storyboard Generator</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f6f6f6;
-      padding: 16px;
-      max-width: 720px;
-      margin: auto;
-    }
-    h1 { font-size: 22px; }
-    label { font-weight: 600; display: block; margin-top: 16px; }
-    input, select, button, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 6px;
-      font-size: 14px;
-    }
-    button {
-      margin-top: 20px;
-      background: #000;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-    }
-    .scene {
-      background: #fff;
-      padding: 12px;
-      margin-top: 16px;
-      border-radius: 8px;
-    }
-    textarea {
-      height: 120px;
-      font-family: monospace;
-    }
-    .copy {
-      margin-top: 6px;
-      background: #e5e5e5;
-      color: #000;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>AI Video Storyboard (3 Scenes)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<style>
+body {
+  font-family: system-ui, sans-serif;
+  background: #f5f5f5;
+  padding: 16px;
+  max-width: 720px;
+  margin: auto;
+}
+h1 { font-size: 22px; }
+label { font-weight: 600; margin-top: 16px; display: block; }
+input, select, button, textarea {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  font-size: 14px;
+}
+button {
+  margin-top: 16px;
+  border: none;
+  background: #000;
+  color: #fff;
+}
+button:disabled {
+  background: #999;
+}
+.scene {
+  background: #fff;
+  padding: 14px;
+  margin-top: 20px;
+  border-radius: 10px;
+}
+textarea {
+  height: 120px;
+  font-family: monospace;
+}
+.copy {
+  background: #eee;
+  color: #000;
+  margin-top: 6px;
+}
+hr {
+  margin: 12px 0;
+}
+</style>
 </head>
 
 <body>
-  <h1>AI Video Storyboard (3 Scenes)</h1>
 
-  <label>รูปสินค้า</label>
-  <input type="file" id="productImages" multiple accept="image/*" />
+<h1>AI Video Storyboard (3 Scenes)</h1>
 
-  <label>รูปนายแบบ / นางแบบ</label>
-  <input type="file" id="modelImage" accept="image/*" />
+<label>รูปสินค้า</label>
+<input type="file" id="productImages" multiple accept="image/*"/>
 
-  <label>แนว Hook</label>
-  <select id="hookStyle">
-    <option value="friend_talk">คุยกับเพื่อน</option>
-    <option value="real_review">รีวิวจริงไม่อวย</option>
-    <option value="complain_first">บ่นก่อนขาย</option>
-    <option value="demo_style">ลองใช้ให้ดู</option>
-  </select>
+<label>รูปนายแบบ / นางแบบ</label>
+<input type="file" id="modelImage" accept="image/*"/>
 
-  <button onclick="generate()">Generate Storyboard</button>
+<label>แนว Hook</label>
+<select id="hookStyle">
+  <option value="friend_talk">คุยกับเพื่อน</option>
+  <option value="real_review">รีวิวจริงไม่อวย</option>
+  <option value="complain_first">บ่นก่อนขาย</option>
+  <option value="demo">ลองใช้ให้ดู</option>
+</select>
 
-  <div id="result"></div>
+<button id="generateBtn" onclick="generate()">Generate Storyboard</button>
+<button id="regenBtn" onclick="regenerate()" disabled>
+  Generate ใหม่ (ใช้รูปเดิม)
+</button>
+
+<div id="result"></div>
 
 <script>
 const N8N_WEBHOOK_URL = "https://YOUR_N8N_WEBHOOK_URL";
+let lastPayload = null;
 
-async function fileToBase64(file) {
-  return new Promise((resolve) => {
+function fileToBase64(file) {
+  return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result.split(",")[1]);
     reader.readAsDataURL(file);
@@ -78,12 +89,18 @@ async function fileToBase64(file) {
 }
 
 async function generate() {
+  const btn = document.getElementById("generateBtn");
+  btn.disabled = true;
+  btn.innerText = "⏳ กำลังคิด storyboard...";
+
   const productFiles = document.getElementById("productImages").files;
   const modelFile = document.getElementById("modelImage").files[0];
-  const hookStyle = document.getElementById("hookStyle").value;
+  const hook = document.getElementById("hookStyle").value;
 
   if (!productFiles.length || !modelFile) {
     alert("กรุณาอัปโหลดรูปให้ครบ");
+    btn.disabled = false;
+    btn.innerText = "Generate Storyboard";
     return;
   }
 
@@ -92,14 +109,38 @@ async function generate() {
     productImages.push(await fileToBase64(f));
   }
 
-  const payload = {
-    hook_style: hookStyle,
+  lastPayload = {
+    hook_style: hook,
     product_images: productImages,
     model_image: await fileToBase64(modelFile),
     platform: "tiktok",
     video_length: 20
   };
 
+  await sendPayload(lastPayload);
+
+  btn.disabled = false;
+  btn.innerText = "Generate Storyboard";
+  document.getElementById("regenBtn").disabled = false;
+}
+
+async function regenerate() {
+  if (!lastPayload) return;
+
+  const btn = document.getElementById("regenBtn");
+  btn.disabled = true;
+  btn.innerText = "⏳ กำลังคิดใหม่...";
+
+  lastPayload.hook_style =
+    document.getElementById("hookStyle").value;
+
+  await sendPayload(lastPayload);
+
+  btn.disabled = false;
+  btn.innerText = "Generate ใหม่ (ใช้รูปเดิม)";
+}
+
+async function sendPayload(payload) {
   document.getElementById("result").innerHTML = "⏳ กำลังประมวลผล...";
 
   const res = await fetch(N8N_WEBHOOK_URL, {
@@ -121,23 +162,24 @@ function renderResult(storyboard) {
     div.className = "scene";
 
     div.innerHTML = `
-      <h3>Scene ${scene.scene} (${scene.purpose})</h3>
+      <h2>🎬 Scene ${scene.scene}</h2>
+      <hr>
+      <p><b>เป้าหมาย:</b> ${scene.purpose}</p>
       <p>${scene.description}</p>
 
       <label>🎥 Video Prompt</label>
       <textarea>${scene.video_prompt}</textarea>
-      <button class="copy" onclick="copy(this)">Copy Prompt</button>
+      <button class="copy" onclick="copyText(this)">Copy Prompt</button>
 
       <label>🗣️ Voice Script</label>
       <textarea>${scene.voice_script}</textarea>
-      <button class="copy" onclick="copy(this)">Copy Script</button>
+      <button class="copy" onclick="copyText(this)">Copy Script</button>
     `;
-
     container.appendChild(div);
   });
 }
 
-function copy(btn) {
+function copyText(btn) {
   const textarea = btn.previousElementSibling;
   textarea.select();
   document.execCommand("copy");
@@ -145,5 +187,6 @@ function copy(btn) {
   setTimeout(() => btn.innerText = "Copy", 1000);
 }
 </script>
+
 </body>
 </html>
